@@ -36,12 +36,10 @@ set(CMAKE_PREFIX_PATH ${INSTALL_PREFIX}/lib/config)
 message("CMAKE_PREFIX_PATH = ${CMAKE_PREFIX_PATH}")
 
 # Qt Moudle
-set(QT4_MOUDLES
-    Qt4::QtCore
-    Qt4::QtGui
-    Qt4::QtXml
-    Qt4::Qt3Support
-    Qt4::QtOpenGL
+set(QT6_MOUDLES
+    Qt6::Core
+	Qt6::Widgets
+    Qt6::Gui
 )
 
 set(Libevent_MOUDLES
@@ -65,14 +63,14 @@ macro(get_src_include)
     endif()
 
     if(UI_FILES)
-        qt4_wrap_ui(UIC_HEADER ${UI_FILES})
+        qt_wrap_ui(UIC_HEADER ${UI_FILES})
         source_group("Resource Files" FILES ${UI_FILES})
         source_group("Generate Files" FILES ${UIC_HEADER})
     endif()
 
     if(QRC_SOURCE_FILES)
-        qt4_add_resources(QRC_FILES ${QRC_SOURCE_FILES})
-        qt4_wrap_cpp()
+        qt6_add_resources(QRC_FILES ${QRC_SOURCE_FILES})
+        qt6_wrap_cpp()
         source_group("Resource Files" FILES ${QRC_SOURCE_FILES})
     endif()
 endmacro()
@@ -89,8 +87,8 @@ endmacro()
 macro(set_cpp name)
     target_link_directories(${name} PRIVATE ${SDK_LIB_DIRECTORY})
 
-    #message("Qt4_FOUND = ${Qt4_FOUND}")
-    #target_link_libraries(${name} ${QT4_MOUDLES})
+    #message("Qt6_FOUND = ${Qt6_FOUND}")
+    #target_link_libraries(${name} ${QT6_MOUDLES})
 	
 	message("Libevent_FOUND = ${Libevent_FOUND}")
     target_link_libraries(${name} ${Libevent_MOUDLES})
@@ -157,7 +155,8 @@ macro(set_cpp name)
 
     if(MSVC)
         set_target_properties(${name} PROPERTIES
-            COMPILE_FLAGS "/Zc:wchar_t-"
+            COMPILE_FLAGS "/Zc:wchar_t"	# 是
+			#COMPILE_FLAGS "/Zc:wchar_t-" #否
         )
 
         # set_target_properties(${name} PROPERTIES

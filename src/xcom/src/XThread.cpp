@@ -184,6 +184,13 @@ auto XThread::threadFun() -> void
 {
     std::cout << impl_->id_ << " XThread::threadFun "
               << "begin" << std::endl;
+
+    if (!impl_->base_)
+    {
+        std::cerr << "event_base_new_with_config failed in thread!" << std::endl;
+        return;
+    }
+
     event_base_dispatch(impl_->base_);
     event_base_free(impl_->base_);
     std::cout << impl_->id_ << " XThread::threadFun "
