@@ -11,14 +11,19 @@
 #include <winsock2.h>
 #endif
 
+#include "XFileServerTask.h"
+
 #include <iostream>
 #include <thread>
 
 #define SPORT 8080
 
-static void SListenCB(struct evconnlistener *, intptr_t, struct sockaddr *, int socklen, void *)
+static void SListenCB(int sock, struct sockaddr *addr, int socklen, void *)
 {
     std::cout << "SListenCB in main" << std::endl;
+    auto task = new XFileServerTask();
+    task->set_sock(sock);
+    XThreadPool::getInstance()->dispatch(task);
 }
 
 int main(int argc, char *argv[])

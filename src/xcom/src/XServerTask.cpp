@@ -13,7 +13,7 @@ static auto SListenCB(struct evconnlistener *ev, evutil_socket_t fd, struct sock
     std::cout << __func__ << std::endl;
     auto task = static_cast<XServerTask *>(arg);
     if (task && task->listen_cb_)
-        task->listen_cb_(ev, fd, sin, socklen, arg);
+        task->listen_cb_(fd, sin, socklen, arg);
     else
     {
         std::cerr << "please set listen callback!" << std::endl;

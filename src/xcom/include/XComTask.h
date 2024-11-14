@@ -17,6 +17,8 @@
 #include <memory>
 #include <string>
 
+struct XMsg;
+
 class XCOM_EXPORT XComTask : public XTask
 {
 public:
@@ -28,6 +30,12 @@ public:
     void setServerIp(const std::string ip);
     void setServerPort(int port);
     void setServerRoot(const std::string path);
+
+public:
+    virtual void eventCB(short events);
+    virtual void readCB();
+    virtual void readCB(const XMsg* msg);
+    virtual void writeCB();
 
 private:
     class PImpl;

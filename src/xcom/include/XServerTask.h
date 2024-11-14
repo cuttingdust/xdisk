@@ -16,7 +16,7 @@
 
 #include <memory>
 
-using ListenCBFunc = void (*)(struct evconnlistener *, intptr_t, struct sockaddr *, int socklen, void *);
+using ListenCBFunc = void (*)(int sock, struct sockaddr *, int socklen, void *);
 
 class XCOM_EXPORT XServerTask : public XTask
 {
