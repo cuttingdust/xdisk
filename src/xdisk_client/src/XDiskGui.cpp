@@ -25,18 +25,23 @@ public:
 public:
     void initUI();
     void initConnect();
+    void updateServerInfo();
 
 public:
-    XDiskGui    *owenr_      = nullptr;
-    QPushButton *refreshBtn_ = nullptr;
-    QPushButton *uploadBtn_  = nullptr;
-    QLineEdit   *ipEdit_     = nullptr;
-    QLineEdit   *pathEdit_   = nullptr;
-    QSpinBox    *portSBox_   = nullptr;
+    XDiskGui     *owenr_       = nullptr;
+    QPushButton  *refreshBtn_  = nullptr;
+    QPushButton  *uploadBtn_   = nullptr;
+    QLineEdit    *ipEdit_      = nullptr;
+    QLineEdit    *pathEdit_    = nullptr;
+    QSpinBox     *portSBox_    = nullptr;
+    QTableWidget *tableWidget_ = nullptr;
 };
 
 XDiskGui::PImpl::PImpl(XDiskGui *owenr) : owenr_(owenr)
 {
+    bool ret = XDiskClient::get()->init();
+    connect(XDiskClient::get(), &XDiskClient::signalUpdateDir, owenr_, &XDiskGui::slotUpdateDir);
+    connect(XDiskClient::get(), &XDiskClient::signalUploadComplete, owenr_, &XDiskGui::slotRefresh);
 }
 
 void XDiskGui::PImpl::initUI()
@@ -48,12 +53,12 @@ void XDiskGui::PImpl::initUI()
     auto *mainLayout = new QHBoxLayout(mainFrame);
 
     /// 列表展示
-    auto *tableWidget = new QTableWidget(mainFrame);
-    mainLayout->addWidget(tableWidget);
-    tableWidget->setColumnCount(4);
-    QStringList header = { "FileName", "FilePath", "FileType", "FileSize" };
-    tableWidget->setHorizontalHeaderLabels(header);
-    tableWidget->setMinimumWidth(500);
+    tableWidget_ = new QTableWidget(mainFrame);
+    mainLayout->addWidget(tableWidget_);
+    tableWidget_->setColumnCount(2);
+    QStringList header = { "FileName", "FileSize" };
+    tableWidget_->setHorizontalHeaderLabels(header);
+    tableWidget_->setMinimumWidth(500);
 
     /// 操作
     auto *optionFrame = new QFrame(mainFrame);
@@ -114,14 +119,30 @@ void XDiskGui::PImpl::initConnect()
     connect(uploadBtn_, &QPushButton::clicked, owenr_, &XDiskGui::slotUpload);
 }
 
+void XDiskGui::PImpl::updateServerInfo()
+{
+    /// 服务器IP
+    const std::string ip = ipEdit_->text().toStdString();
+    /// 服务器端口
+    const int port = portSBox_->value();
+    /// 服务器路径
+    const std::string path = pathEdit_->text().toStdString();
+
+    XDiskClient::get()->setServerIp(ip);
+    XDiskClient::get()->setServerPort(port);
+    XDiskClient::get()->setServerRoot(path);
+
+    XDiskClient::get()->getDir();
+}
+
 
 XDiskGui::XDiskGui(QWidget *parent, Qt::WindowFlags flags) : QMainWindow(parent, flags)
 {
     impl_ = std::make_shared<PImpl>(this);
-
     initUI();
 
-    bool ret = XDiskClient::get()->init();
+    /// 刷新目录
+    slotRefresh();
 }
 
 XDiskGui::~XDiskGui() = default;
@@ -135,21 +156,34 @@ void XDiskGui::initUI()
 void XDiskGui::slotRefresh()
 {
     std::cout << "Refresh" << std::endl;
-    /// 服务器IP
-    const std::string ip = impl_->ipEdit_->text().toStdString();
-    /// 服务器端口
-    const int port = impl_->portSBox_->value();
-    /// 服务器路径
-    const std::string path = impl_->pathEdit_->text().toStdString();
-
-    XDiskClient::get()->setServerIp(ip);
-    XDiskClient::get()->setServerPort(port);
-    XDiskClient::get()->setServerRoot(path);
-
-    XDiskClient::get()->getDir();
+    impl_->updateServerInfo();
 }
 
 void XDiskGui::slotUpload()
 {
-    std::cout << "Upload" << std::endl;
+    const auto &filePath = QFileDialog::getOpenFileName(this, QString::fromLocal8Bit("Please select upload file!"));
+    if (filePath.isEmpty())
+        return;
+    std::cout << "Upload: " << filePath.toStdString() << std::endl;
+    XDiskClient::get()->uploadFile(filePath.toStdString());
+    impl_->updateServerInfo();
+}
+
+void XDiskGui::slotUpdateDir(std::string dirs)
+{
+    // std::cout << "Dirs: " << dirs << std::endl;
+    QString str = QString::fromStdString(dirs);
+    str         = str.trimmed();
+    if (str.isEmpty())
+        return;
+    auto fileStr = str.split(";");
+    impl_->tableWidget_->setRowCount(fileStr.size());
+    for (int i = 0; i < fileStr.size(); ++i)
+    {
+        auto file = fileStr[i].split(",");
+        if (file.size() != 2)
+            continue;
+        impl_->tableWidget_->setItem(i, 0, new QTableWidgetItem(file[0]));
+        impl_->tableWidget_->setItem(i, 1, new QTableWidgetItem(file[1]));
+    }
 }

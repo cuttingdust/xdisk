@@ -21,6 +21,15 @@ public:
     virtual ~XFileServerTask();
 
 public:
+    void read(const XMsg *msg) override;
+
+    void read(void *data, int size) override;
+
+    void writeCB() override;
+
+private:
+    class PImpl;
+    std::shared_ptr<PImpl> impl_;
 };
 
 

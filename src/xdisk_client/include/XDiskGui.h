@@ -23,10 +23,10 @@ public:
 
 public:
     void initUI();
-
 protected slots:
     void slotRefresh();
     void slotUpload();
+    void slotUpdateDir(std::string dirs);
 
 private:
     class PImpl;

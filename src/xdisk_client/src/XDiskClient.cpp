@@ -1,7 +1,9 @@
 #include "XDiskClient.h"
 
 #include "XComTask.h"
+#include "XDirTask.h"
 #include "XThreadPool.h"
+#include "XUploadTask.h"
 
 #include <iostream>
 
@@ -30,19 +32,38 @@ XDiskClient::XDiskClient()
     impl_ = std::make_shared<PImpl>(this);
 }
 
-XDiskClient::~XDiskClient()
+XDiskClient::~XDiskClient() = default;
+
+static void dirCB(std::string dirs)
 {
-    impl_ = std::make_shared<PImpl>(this);
+    std::cout << dirs << std::endl;
+    XDiskClient::get()->signalUpdateDir(dirs);
+}
+
+static void uploadCB()
+{
+    XDiskClient::get()->signalUploadComplete();
 }
 
 void XDiskClient::getDir()
 {
     std::cout << "getDir " << impl_->serverIp_ << ":" << impl_->serverPort_ << " /" << impl_->serverPath_ << std::endl;
 
-    auto *task = new XComTask();
+    auto *task = new XDirTask();
     task->setServerIp(impl_->serverIp_);
     task->setServerPort(impl_->serverPort_);
     task->setServerRoot(impl_->serverPath_);
+    task->dirCB = dirCB;
+    XThreadPool::getInstance()->dispatch(task);
+}
+
+void XDiskClient::uploadFile(const std::string &filePath)
+{
+    auto *task = new XUploadTask();
+    task->setServerIp(impl_->serverIp_);
+    task->setServerPort(impl_->serverPort_);
+    task->setFilePath(filePath);
+    task->uploadCB = uploadCB;
     XThreadPool::getInstance()->dispatch(task);
 }
 

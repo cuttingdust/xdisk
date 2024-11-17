@@ -11,11 +11,14 @@
 #ifndef XDISKCLIENT_H
 #define XDISKCLIENT_H
 
+#include <QObject>
+
 #include <memory>
 #include <string>
 
-class XDiskClient
+class XDiskClient : public QObject
 {
+    Q_OBJECT
 public:
     static XDiskClient* get()
     {
@@ -27,10 +30,21 @@ public:
     /// \brief 获取目录下的文件列表， 只是请求消息到服务器
     void getDir();
 
+    /// \brief 上传文件
+    /// \param filePath
+    void uploadFile(const std::string& filePath);
+
     void setServerIp(const std::string ip);
+
     void setServerPort(int port);
+
     void setServerRoot(const std::string path);
+
     bool init();
+signals:
+    void signalUpdateDir(std::string dirs);
+
+    void signalUploadComplete();
 
 private:
     XDiskClient();

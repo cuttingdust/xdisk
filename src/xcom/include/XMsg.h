@@ -15,10 +15,16 @@
 
 enum MsgType
 {
-    MSG_NONE     = 0, ///<<< 无效消息
-    MSG_GETDIR   = 1, ///<<< 请求目录
-    MSG_DIRLIST  = 2, ///<<< 返回目录列表
-    MSG_MAX_TYPE = 3, ///<<< 用来验证类型正确
+    MSG_NONE              = 0, ///<<< 无效消息
+    MSG_GETDIR            = 1, ///<<< 请求目录
+    MSG_DIRLIST           = 2, ///<<< 返回目录列表
+    MSG_UPLOAD_INFO       = 3, ///<<< 请求上传文件
+    MSG_UPLOAD_ACCEPT     = 4, ///<<< 服务端准备好接受文件
+    MSG_UPLOAD_COMPLETE   = 5, ///<<< 上传完成
+    MSG_DOWNLOAD_INFO     = 6, ///<<< 请求下载文件
+    MSG_DOWNALOD_ACCEPT   = 7, ///<<< 服务端准备好发送文件
+    MSG_DOWNLOAD_COMPLETE = 8, ///<<< 下载完成
+    MSG_MAX_TYPE,              ///<<< 用来验证类型正确
 };
 
 /// 消息最大长度

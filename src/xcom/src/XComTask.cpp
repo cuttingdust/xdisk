@@ -6,6 +6,8 @@
 
 #include <iostream>
 
+#include <event2/bufferevent.h>
+
 static void SReadCb(struct bufferevent *bev, void *ctx)
 {
     auto task = static_cast<XComTask *>(ctx);
@@ -14,7 +16,8 @@ static void SReadCb(struct bufferevent *bev, void *ctx)
 
 static void SWriteCb(struct bufferevent *bev, void *ctx)
 {
-    std::cout << "SWriteCb" << std::endl;
+    auto task = static_cast<XComTask *>(ctx);
+    task->writeCB();
 }
 
 static void SEventCb(struct bufferevent *bev, short events, void *ctx)
@@ -30,16 +33,15 @@ public:
     ~PImpl();
 
 public:
-    bool write(const XMsg *msg);
-
-public:
-    XComTask           *owenr_      = nullptr;
-    struct bufferevent *bev_        = nullptr;
-    std::string         serverPath_ = "";
-    std::string         serverIp_   = "";
-    int                 serverPort_ = -1;
-    char                buffer_[1024];
+    XComTask           *owenr_        = nullptr;
+    struct bufferevent *bev_          = nullptr;
+    std::string         serverPath_   = "";
+    std::string         serverIp_     = "";
+    int                 serverPort_   = -1;
+    char                buffer_[1024] = { 0 };
     XMsg                msg_;
+
+    bool isRecvMsg = true; /// 是否接受消息
 };
 
 XComTask::PImpl::PImpl(XComTask *owenr) : owenr_(owenr)
@@ -47,28 +49,6 @@ XComTask::PImpl::PImpl(XComTask *owenr) : owenr_(owenr)
 }
 
 XComTask::PImpl::~PImpl() = default;
-
-bool XComTask::PImpl::write(const XMsg *msg)
-{
-    if (!bev_ || !msg || !msg->data || msg->size <= 0)
-    {
-        return false;
-    }
-    /// 发送消息头
-    int len = bufferevent_write(bev_, msg, sizeof(XMsgHead));
-    if (len != 0)
-    {
-        return false;
-    }
-
-    /// 发送消息内容
-    len = bufferevent_write(bev_, msg->data, msg->size);
-    if (len != 0)
-    {
-        return false;
-    }
-    return true;
-}
 
 XComTask::XComTask()
 {
@@ -135,18 +115,19 @@ void XComTask::setServerRoot(const std::string path)
     impl_->serverPath_ = path;
 }
 
+void XComTask::setIsRecvMsg(bool isRecvMsg)
+{
+    impl_->isRecvMsg = isRecvMsg;
+}
+
 void XComTask::eventCB(short events)
 {
     if (events & BEV_EVENT_CONNECTED)
     {
         std::cout << "BEV_EVENT_CONNECTED" << std::endl;
 
-        XMsg msg;
-        msg.type = MSG_GETDIR;
-        msg.size = 3;
-        msg.data = (char *)"./";
-        impl_->write(&msg);
-        // bufferevent_write(impl_->bev_, &msg, sizeof(XMsgHead));
+        /// 连接成功后发送消息
+        connectCB();
     }
 
     /// 退出要处理缓冲内容
@@ -163,11 +144,25 @@ void XComTask::eventCB(short events)
     }
 }
 
+void XComTask::connectCB()
+{
+    std::cout << "connectCB" << std::endl;
+}
+
 void XComTask::readCB()
 {
     /// 接受消息
     for (;;)
     {
+        if (!impl_->isRecvMsg)
+        {
+            int len = bufferevent_read(impl_->bev_, impl_->buffer_, sizeof(impl_->buffer_));
+            if (len <= 0)
+                return;
+            read(impl_->buffer_, len);
+            continue;
+        }
+
         /// 接受消息头部
         if (!impl_->msg_.data)
         {
@@ -179,14 +174,14 @@ void XComTask::readCB()
             }
             if (len != headSize)
             {
-                std::cerr << "readCB: msg head error!!!" << std::endl;
+                std::cerr << "read: msg head error!!!" << std::endl;
                 return;
             }
 
             /// 验证消息头部的有效性
             if (impl_->msg_.type > MSG_MAX_TYPE || impl_->msg_.size <= 0 || impl_->msg_.size > MSG_MAX_SIZE)
             {
-                std::cerr << "readCB: msg head error!!!" << std::endl;
+                std::cerr << "read: msg head error!!!" << std::endl;
                 return;
             }
             impl_->msg_.data = new char[impl_->msg_.size];
@@ -211,19 +206,76 @@ void XComTask::readCB()
         if (impl_->msg_.size == impl_->msg_.recved)
         {
             /// 处理消息
-            readCB(&impl_->msg_);
+            read(&impl_->msg_);
             delete impl_->msg_.data;
             memset(&impl_->msg_, 0, sizeof(impl_->msg_));
         }
     }
 }
 
-void XComTask::readCB(const XMsg *msg)
+void XComTask::read(const XMsg *msg)
 {
     std::cout << "recv Msg type: " << msg->type << " size: " << msg->size << std::endl;
+}
+
+void XComTask::read(void *data, int size)
+{
 }
 
 void XComTask::writeCB()
 {
     std::cout << "writeCB" << std::endl;
+}
+
+bool XComTask::write(const XMsg *msg)
+{
+    if (!impl_->bev_ || !msg || !msg->data || msg->size <= 0)
+    {
+        return false;
+    }
+    /// 发送消息头
+    int len = bufferevent_write(impl_->bev_, msg, sizeof(XMsgHead));
+    if (len != 0)
+    {
+        return false;
+    }
+
+    /// 发送消息内容
+    len = bufferevent_write(impl_->bev_, msg->data, msg->size);
+    if (len != 0)
+    {
+        return false;
+    }
+    return true;
+}
+
+bool XComTask::write(const void *data, int size)
+{
+    if (!impl_->bev_ || !data || size <= 0)
+    {
+        return false;
+    }
+    int len = bufferevent_write(impl_->bev_, data, size);
+    if (len != 0)
+    {
+        return false;
+    }
+    return true;
+}
+
+void XComTask::beginWriteCB()
+{
+    if (!impl_->bev_)
+        return;
+
+    bufferevent_trigger(impl_->bev_, EV_WRITE, 0);
+}
+
+void XComTask::close()
+{
+    if (impl_->bev_)
+    {
+        bufferevent_free(impl_->bev_);
+        impl_->bev_ = nullptr;
+    }
 }

@@ -27,15 +27,36 @@ public:
 
 public:
     auto init() -> bool override;
+
     void setServerIp(const std::string ip);
+
     void setServerPort(int port);
+
     void setServerRoot(const std::string path);
+
+    void setIsRecvMsg(bool isRecvMsg);
 
 public:
     virtual void eventCB(short events);
+
+    virtual void connectCB();
+
     virtual void readCB();
-    virtual void readCB(const XMsg* msg);
+
+    virtual void read(const XMsg* msg);
+
+    virtual void read(void* data, int size);
+
     virtual void writeCB();
+
+    virtual bool write(const XMsg* msg);
+
+    virtual bool write(const void* data, int size);
+
+    /// \brief 激活写入回调
+    virtual void beginWriteCB();
+
+    virtual void close();
 
 private:
     class PImpl;
