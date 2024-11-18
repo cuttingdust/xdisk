@@ -154,6 +154,9 @@ void XComTask::readCB()
     /// 接受消息
     for (;;)
     {
+        if (!impl_->bev_)
+            return;
+
         if (!impl_->isRecvMsg)
         {
             int len = bufferevent_read(impl_->bev_, impl_->buffer_, sizeof(impl_->buffer_));
@@ -206,17 +209,19 @@ void XComTask::readCB()
         if (impl_->msg_.size == impl_->msg_.recved)
         {
             /// 处理消息
-            read(&impl_->msg_);
-            delete impl_->msg_.data;
-            memset(&impl_->msg_, 0, sizeof(impl_->msg_));
+            if (read(&impl_->msg_))
+            {
+                delete impl_->msg_.data;
+                memset(&impl_->msg_, 0, sizeof(impl_->msg_));
+            }
         }
     }
 }
 
-void XComTask::read(const XMsg *msg)
-{
-    std::cout << "recv Msg type: " << msg->type << " size: " << msg->size << std::endl;
-}
+// void XComTask::read(const XMsg *msg)
+// {
+//     std::cout << "recv Msg type: " << msg->type << " size: " << msg->size << std::endl;
+// }
 
 void XComTask::read(void *data, int size)
 {
@@ -277,5 +282,11 @@ void XComTask::close()
     {
         bufferevent_free(impl_->bev_);
         impl_->bev_ = nullptr;
+    }
+
+    if (impl_->msg_.data)
+    {
+        delete impl_->msg_.data;
+        memset(&impl_->msg_, 0, sizeof(impl_->msg_));
     }
 }

@@ -21,7 +21,7 @@ public:
     virtual ~XFileServerTask();
 
 public:
-    void read(const XMsg *msg) override;
+    bool read(const XMsg *msg) override;
 
     void read(void *data, int size) override;
 

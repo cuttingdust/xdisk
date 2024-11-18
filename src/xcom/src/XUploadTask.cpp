@@ -18,6 +18,7 @@ public:
     std::ifstream ifs_;
     int           fileSize          = 0;
     char          readBuffer_[1024] = { 0 };
+    std::ofstream ofs_;
 };
 
 XUploadTask::PImpl::PImpl(XUploadTask *owenr) : owenr_(owenr)
@@ -51,7 +52,7 @@ void XUploadTask::writeCB()
     }
 }
 
-void XUploadTask::read(const XMsg *msg)
+bool XUploadTask::read(const XMsg *msg)
 {
     switch (msg->type)
     {
@@ -69,6 +70,8 @@ void XUploadTask::read(const XMsg *msg)
         default:
             break;
     }
+
+    return true;
 }
 
 void XUploadTask::connectCB()

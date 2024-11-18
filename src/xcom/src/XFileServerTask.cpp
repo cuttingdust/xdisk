@@ -34,7 +34,7 @@ public:
     char readBuffer_[1024] = { 0 };
 
     /// \brief 客户端已上传文件大小
-    int uploadSize_ = 0;
+    int recvSize_ = 0;
 
     static std::string sCurDir;
 
@@ -109,7 +109,7 @@ void XFileServerTask::PImpl::uploadFile(const XMsg *msg)
     resMsg.data = const_cast<char *>("OK");
     owenr_->write(&resMsg);
     owenr_->setIsRecvMsg(false);
-    uploadSize_ = 0;
+    recvSize_ = 0;
 }
 
 void XFileServerTask::PImpl::downloadFile(const XMsg *msg)
@@ -135,12 +135,15 @@ void XFileServerTask::PImpl::downloadFile(const XMsg *msg)
     fileSize_ = ifs_.tellg();
     ifs_.seekg(0, std::ios::beg);
     std::cerr << "open file " << filePath_ << " success." << std::endl;
+    char data[1024] = {};
+    sprintf(data, "%d", fileSize_);
+
 
     /// 回复消息MSG_DOWNALOD_ACCEPT
     XMsg resMsg;
     resMsg.type = MSG_DOWNALOD_ACCEPT;
-    resMsg.size = 3;
-    resMsg.data = const_cast<char *>("OK");
+    resMsg.size = strlen(data) + 1;
+    resMsg.data = data;
     owenr_->write(&resMsg);
 }
 
@@ -168,7 +171,7 @@ XFileServerTask::XFileServerTask()
 
 XFileServerTask::~XFileServerTask() = default;
 
-void XFileServerTask::read(const XMsg *msg)
+bool XFileServerTask::read(const XMsg *msg)
 {
     switch (msg->type)
     {
@@ -195,11 +198,13 @@ void XFileServerTask::read(const XMsg *msg)
                 std::cout << "MSG_DOWNLOAD_COMPLETE" << std::endl;
                 /// 清理网络资源
                 close();
+                return false;
                 break;
             }
         default:
             break;
     }
+    return true;
 }
 
 void XFileServerTask::read(void *data, int size)
@@ -209,8 +214,8 @@ void XFileServerTask::read(void *data, int size)
     if (!impl_->ofs_.is_open())
         return;
     impl_->ofs_.write(static_cast<char *>(data), size);
-    impl_->uploadSize_ += size;
-    if (impl_->uploadSize_ == impl_->fileSize_)
+    impl_->recvSize_ += size;
+    if (impl_->recvSize_ == impl_->fileSize_)
     {
         std::cout << "file write end." << std::endl;
         impl_->ofs_.close();

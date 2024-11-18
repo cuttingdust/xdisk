@@ -34,6 +34,11 @@ public:
     /// \param filePath
     void uploadFile(const std::string& filePath);
 
+    /// \brief обтьнд╪Ч
+    /// \param serverPath
+    /// \param localPath
+    void downloadFile(const std::string& serverPath, const std::string& localPath);
+
     void setServerIp(const std::string ip);
 
     void setServerPort(int port);
@@ -45,6 +50,8 @@ signals:
     void signalUpdateDir(std::string dirs);
 
     void signalUploadComplete();
+
+    void signalDownloadComplete();
 
 private:
     XDiskClient();

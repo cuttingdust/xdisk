@@ -23,7 +23,7 @@ public:
 
     /// \brief 接受消息的回调
     /// \param msg
-    void read(const XMsg *msg) override;
+    bool read(const XMsg *msg) override;
 
     void setServerRoot(const std::string path);
 

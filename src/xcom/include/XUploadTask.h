@@ -25,7 +25,7 @@ public:
 public:
     void writeCB() override;
 
-    void read(const XMsg *msg) override;
+    bool read(const XMsg *msg) override;
 
     void connectCB() override;
 

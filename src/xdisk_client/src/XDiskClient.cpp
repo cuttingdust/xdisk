@@ -2,6 +2,7 @@
 
 #include "XComTask.h"
 #include "XDirTask.h"
+#include "XDownLoadTask.h"
 #include "XThreadPool.h"
 #include "XUploadTask.h"
 
@@ -45,6 +46,11 @@ static void uploadCB()
     XDiskClient::get()->signalUploadComplete();
 }
 
+static void downloadCB()
+{
+    XDiskClient::get()->signalDownloadComplete();
+}
+
 void XDiskClient::getDir()
 {
     std::cout << "getDir " << impl_->serverIp_ << ":" << impl_->serverPort_ << " /" << impl_->serverPath_ << std::endl;
@@ -64,6 +70,17 @@ void XDiskClient::uploadFile(const std::string &filePath)
     task->setServerPort(impl_->serverPort_);
     task->setFilePath(filePath);
     task->uploadCB = uploadCB;
+    XThreadPool::getInstance()->dispatch(task);
+}
+
+void XDiskClient::downloadFile(const std::string &serverPath, const std::string &localPath)
+{
+    auto *task = new XDownLoadTask();
+    task->setServerIp(impl_->serverIp_);
+    task->setServerPort(impl_->serverPort_);
+    task->setFilePath(serverPath);
+    task->setLocalPath(localPath);
+    task->downloadCB = downloadCB;
     XThreadPool::getInstance()->dispatch(task);
 }
 

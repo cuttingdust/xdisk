@@ -26,7 +26,11 @@ public:
 protected slots:
     void slotRefresh();
     void slotUpload();
+    void slotDownload();
+
+public:
     void slotUpdateDir(std::string dirs);
+    void slotDownloadComplete();
 
 private:
     class PImpl;

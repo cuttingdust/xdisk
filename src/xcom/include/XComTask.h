@@ -43,7 +43,7 @@ public:
 
     virtual void readCB();
 
-    virtual void read(const XMsg* msg);
+    virtual bool read(const XMsg* msg) = 0;
 
     virtual void read(void* data, int size);
 

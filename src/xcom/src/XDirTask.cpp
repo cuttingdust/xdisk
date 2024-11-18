@@ -14,7 +14,7 @@ void XDirTask::connectCB()
     write(&msg);
 }
 
-void XDirTask::read(const XMsg *msg)
+bool XDirTask::read(const XMsg *msg)
 {
     switch (msg->type)
     {
@@ -27,6 +27,8 @@ void XDirTask::read(const XMsg *msg)
         default:
             break;
     }
+
+    return true;
 }
 
 void XDirTask::setServerRoot(const std::string path)

@@ -31,6 +31,7 @@ public:
     XDiskGui     *owenr_       = nullptr;
     QPushButton  *refreshBtn_  = nullptr;
     QPushButton  *uploadBtn_   = nullptr;
+    QPushButton  *downloadBtn_ = nullptr;
     QLineEdit    *ipEdit_      = nullptr;
     QLineEdit    *pathEdit_    = nullptr;
     QSpinBox     *portSBox_    = nullptr;
@@ -42,6 +43,7 @@ XDiskGui::PImpl::PImpl(XDiskGui *owenr) : owenr_(owenr)
     bool ret = XDiskClient::get()->init();
     connect(XDiskClient::get(), &XDiskClient::signalUpdateDir, owenr_, &XDiskGui::slotUpdateDir);
     connect(XDiskClient::get(), &XDiskClient::signalUploadComplete, owenr_, &XDiskGui::slotRefresh);
+    connect(XDiskClient::get(), &XDiskClient::signalDownloadComplete, owenr_, &XDiskGui::slotDownloadComplete);
 }
 
 void XDiskGui::PImpl::initUI()
@@ -54,6 +56,8 @@ void XDiskGui::PImpl::initUI()
 
     /// 列表展示
     tableWidget_ = new QTableWidget(mainFrame);
+    tableWidget_->setSelectionBehavior(QTableWidget::SelectRows); /// 按行选择
+    tableWidget_->setSelectionMode(QTableWidget::ExtendedSelection);
     mainLayout->addWidget(tableWidget_);
     tableWidget_->setColumnCount(2);
     QStringList header = { "FileName", "FileSize" };
@@ -105,8 +109,11 @@ void XDiskGui::PImpl::initUI()
     refreshBtn_->setFixedSize(100, 80);
     uploadBtn_ = new QPushButton("Upload", optFrame);
     uploadBtn_->setFixedSize(100, 80);
+    downloadBtn_ = new QPushButton("Download", optFrame);
+    downloadBtn_->setFixedSize(100, 80);
     optLayout->addWidget(refreshBtn_);
     optLayout->addWidget(uploadBtn_);
+    optLayout->addWidget(downloadBtn_);
 
     optionLayout->addStretch();
     mainLayout->setStretch(0, 3);
@@ -117,6 +124,7 @@ void XDiskGui::PImpl::initConnect()
 {
     connect(refreshBtn_, &QPushButton::clicked, owenr_, &XDiskGui::slotRefresh);
     connect(uploadBtn_, &QPushButton::clicked, owenr_, &XDiskGui::slotUpload);
+    connect(downloadBtn_, &QPushButton::clicked, owenr_, &XDiskGui::slotDownload);
 }
 
 void XDiskGui::PImpl::updateServerInfo()
@@ -131,8 +139,6 @@ void XDiskGui::PImpl::updateServerInfo()
     XDiskClient::get()->setServerIp(ip);
     XDiskClient::get()->setServerPort(port);
     XDiskClient::get()->setServerRoot(path);
-
-    XDiskClient::get()->getDir();
 }
 
 
@@ -155,8 +161,8 @@ void XDiskGui::initUI()
 
 void XDiskGui::slotRefresh()
 {
-    std::cout << "Refresh" << std::endl;
     impl_->updateServerInfo();
+    XDiskClient::get()->getDir();
 }
 
 void XDiskGui::slotUpload()
@@ -167,6 +173,34 @@ void XDiskGui::slotUpload()
     std::cout << "Upload: " << filePath.toStdString() << std::endl;
     XDiskClient::get()->uploadFile(filePath.toStdString());
     impl_->updateServerInfo();
+}
+
+void XDiskGui::slotDownload()
+{
+    std::cout << "##########################Download########################" << std::endl;
+    impl_->updateServerInfo();
+    auto row = impl_->tableWidget_->currentRow();
+    if (row < 0)
+    {
+        QMessageBox::information(this, QString::fromLocal8Bit("Download"),
+                                 QString::fromLocal8Bit("Please select a file!"));
+        return;
+    }
+
+    /// 获取下载的文件名
+    auto fileName   = impl_->tableWidget_->item(row, 0)->text().toStdString();
+    auto serverPath = impl_->pathEdit_->text().toStdString();
+    auto filePath   = serverPath + "/" + fileName;
+
+    /// 获取下载的路径
+    auto localPath = QFileDialog::getExistingDirectory(this, QString::fromLocal8Bit("Please select download path!"));
+    if (localPath.isEmpty())
+        return;
+
+    std::cout << "Download: " << filePath << " to " << localPath.toStdString() << std::endl;
+
+
+    XDiskClient::get()->downloadFile(filePath, localPath.toStdString());
 }
 
 void XDiskGui::slotUpdateDir(std::string dirs)
@@ -186,4 +220,9 @@ void XDiskGui::slotUpdateDir(std::string dirs)
         impl_->tableWidget_->setItem(i, 0, new QTableWidgetItem(file[0]));
         impl_->tableWidget_->setItem(i, 1, new QTableWidgetItem(file[1]));
     }
+}
+
+void XDiskGui::slotDownloadComplete()
+{
+    QMessageBox::information(this, QString::fromLocal8Bit("Download"), QString::fromLocal8Bit("Download complete!"));
 }
