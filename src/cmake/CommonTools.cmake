@@ -38,7 +38,7 @@ message("CMAKE_PREFIX_PATH = ${CMAKE_PREFIX_PATH}")
 # Qt Moudle
 set(QT6_MOUDLES
     Qt6::Core
-	Qt6::Widgets
+	  Qt6::Widgets
     Qt6::Gui
 )
 
