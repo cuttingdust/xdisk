@@ -134,13 +134,13 @@ void XComTask::eventCB(short events)
     if (events & (BEV_EVENT_ERROR | BEV_EVENT_TIMEOUT))
     {
         std::cout << "BEV_EVENT_ERROR | BEV_EVENT_TIMEOUT" << std::endl;
-        bufferevent_free(impl_->bev_);
+        close();
     }
 
     if (events & BEV_EVENT_EOF)
     {
         std::cout << "BEV_EVENT_EOF" << std::endl;
-        bufferevent_free(impl_->bev_);
+        close();
     }
 }
 
@@ -151,12 +151,13 @@ void XComTask::connectCB()
 
 void XComTask::readCB()
 {
+    if (!impl_->bev_)
+        return;
+
+
     /// 接受消息
     for (;;)
     {
-        if (!impl_->bev_)
-            return;
-
         if (!impl_->isRecvMsg)
         {
             int len = bufferevent_read(impl_->bev_, impl_->buffer_, sizeof(impl_->buffer_));
@@ -209,11 +210,11 @@ void XComTask::readCB()
         if (impl_->msg_.size == impl_->msg_.recved)
         {
             /// 处理消息
-            if (read(&impl_->msg_))
-            {
-                delete impl_->msg_.data;
-                memset(&impl_->msg_, 0, sizeof(impl_->msg_));
-            }
+            if (!read(&impl_->msg_))
+                return;
+
+            delete impl_->msg_.data;
+            memset(&impl_->msg_, 0, sizeof(impl_->msg_));
         }
     }
 }
@@ -289,4 +290,6 @@ void XComTask::close()
         delete impl_->msg_.data;
         memset(&impl_->msg_, 0, sizeof(impl_->msg_));
     }
+
+    delete this;
 }
